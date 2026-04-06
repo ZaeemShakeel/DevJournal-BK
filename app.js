@@ -18,6 +18,36 @@ app.use(express.urlencoded({ extended: true }));
 // Enable CORS
 app.use(cors());
 
+// ─── Request Logger ───────────────────────────────────────────────────────────
+app.use((req, res, next) => {
+  const start = Date.now();
+  const originalJson = res.json.bind(res);
+
+  res.json = (body) => {
+    const duration = Date.now() - start;
+    const status = res.statusCode;
+    const color =
+      status >= 500 ? '\x1b[31m' :   // red   – server error
+      status >= 400 ? '\x1b[33m' :   // yellow – client error
+      status >= 200 ? '\x1b[32m' :   // green  – success
+      '\x1b[0m';
+
+    console.log(
+      `${color}[${new Date().toISOString()}] ${req.method} ${req.originalUrl} → ${status} (${duration}ms)\x1b[0m`
+    );
+
+    if (status >= 400) {
+      console.error(`  ↳ Error: ${body?.message || JSON.stringify(body)}`);
+    }
+
+    return originalJson(body);
+  };
+
+  next();
+});
+// ──────────────────────────────────────────────────────────────────────────────
+
+
 // Test route
 app.get('/', (req, res) => {
   res.send('DevJournal API is running! 🚀');
@@ -27,8 +57,8 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 
-// 404 handler - FIXED VERSION (removed the problematic '*')
-app.use((req, res) => {
+// 404 handler
+app.use((req, res, next) => {
   res.status(404).json({
     success: false,
     message: `Cannot find ${req.originalUrl} on this server`

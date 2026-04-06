@@ -62,10 +62,13 @@ export const updatePost = async (req, res) => {
     post = await Post.findByIdAndUpdate(
       req.params.id,
       { ...req.body, updatedAt: Date.now() },
+      // { returnDocument: 'after', runValidators: true }
       { new: true, runValidators: true }
+      
     ).populate('author', 'name email');
 
     res.json({ success: true, data: post });
+    console.log("BODY:", req.body);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

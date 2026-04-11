@@ -1,18 +1,23 @@
 import Post from '../models/Post.js';
+import User from '../models/User.js';
 
 export const getPosts = async (req, res) => {
   try {
+    let query = {};
     if (req.query.author === 'me' && req.user) {
-      const posts = await Post.find({ author: req.user.id })
-        .populate('author', 'name email')
-        .sort('-createdAt');
-      return res.json({ success: true, count: posts.length, data: posts });
+      query.author = req.user.id;
+    } else if (req.query.username) {
+      const user = await User.findOne({ username: req.query.username });
+      if (user) {
+        query.author = user._id;
+      } else {
+        return res.json({ success: true, count: 0, data: [] });
+      }
     }
 
-    const posts = await Post.find()
-      .populate('author', 'name email')
+    const posts = await Post.find(query)
+      .populate('author', 'name email username profilePic bio designation')
       .sort('-createdAt');
-    
     res.json({ success: true, count: posts.length, data: posts });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -22,7 +27,7 @@ export const getPosts = async (req, res) => {
 export const getPost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
-      .populate('author', 'name email');
+      .populate('author', 'name email username profilePic bio designation');
 
     if (!post) {
       return res.status(404).json({ success: false, message: 'Post not found' });
@@ -39,7 +44,7 @@ export const createPost = async (req, res) => {
     req.body.author = req.user.id;
     const post = await Post.create(req.body);
     const populatedPost = await Post.findById(post._id)
-      .populate('author', 'name email');
+      .populate('author', 'name email username profilePic bio designation');
     
     res.status(201).json({ success: true, data: populatedPost });
   } catch (error) {
@@ -65,7 +70,7 @@ export const updatePost = async (req, res) => {
       // { returnDocument: 'after', runValidators: true }
       { new: true, runValidators: true }
       
-    ).populate('author', 'name email');
+    ).populate('author', 'name email username profilePic bio designation');
 
     res.json({ success: true, data: post });
     console.log("BODY:", req.body);

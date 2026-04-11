@@ -48,6 +48,38 @@ app.use((req, res, next) => {
 // ──────────────────────────────────────────────────────────────────────────────
 
 
+import mongoose from 'mongoose';
+
+// DB Connection Logic for Serverless Environment
+const connectDBForVercel = async () => {
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+  try {
+    await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000
+    });
+    console.log(`✅ MongoDB Connected`);
+  } catch (error) {
+    console.error(`❌ DB Error: ${error.message}`);
+    throw error;
+  }
+};
+
+// Database Connection Middleware MUST be before routes!
+app.use(async (req, res, next) => {
+  try {
+    await connectDBForVercel();
+    next();
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to connect to Database.',
+      error: error.message
+    });
+  }
+});
+
 // Test route
 app.get('/', (req, res) => {
   res.send('DevJournal API is running! 🚀');

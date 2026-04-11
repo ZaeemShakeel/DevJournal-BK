@@ -51,12 +51,14 @@ const connectDBForVercel = async () => {
     console.log(`✅ MongoDB Connected (New Instance on Vercel)`);
   } catch (error) {
     console.error(`❌ DB Error: ${error.message}`);
-    // Note: process.exit(1) is removed here so Vercel doesn't crash the entire function container.
   }
 };
 
-// Execute DB connection immediately as Vercel boots up this file instance
-connectDBForVercel();
+// Use Express middleware to guarantee DB is connected BEFORE processing any API request
+app.use(async (req, res, next) => {
+  await connectDBForVercel();
+  next();
+});
 
 // Vercel demands we EXPORT the express instance (app) instead of binding it to app.listen()
 export default app;
